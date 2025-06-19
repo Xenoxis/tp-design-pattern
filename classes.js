@@ -118,7 +118,7 @@ class ExplosionBuilder {
     }
 
     withPosition(x = 0, y = 0) {
-        this.#defaults.pos = {x, y};
+        this.#defaults.pos = { x, y };
         return this;
     }
 
@@ -244,4 +244,14 @@ class ShadowParticule extends ParticuleDecorator {
 
         return this.child();
     }
+}
+
+module.exports = {
+    FlyweightFactory,
+    ExplosionBuilder,
+    ExplosionConfig,
+    ExplosionFactory,
+    ProxyExplosionFactory,
+    GlowParticule,
+    ShadowParticule
 }
