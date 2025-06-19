@@ -1,10 +1,10 @@
 const PARTICULES_FLYWEIGHTS = {
     textures: new Array(10).fill(new Uint8Array(1024).fill(Math.random() * 256)),
-    shaders: new Array.from({length: 5}, (_, i) => `shader-${i}`)
+    shaders: Array.from({length: 5}, (_, i) => `shader-${i}`)
 }
 
 class ParticulePrototype {
-    constructor({size = 1, color = '0x0c', speed = {x: 0, y: 0}}) {
+    constructor({size = 1, color = '0x0c', speed = {x: 0, y: 0}} = {}) {
         this.size = size;
         this.color = color;
         this.speed = speed;
@@ -21,7 +21,7 @@ class ParticulePrototype {
 class Particule extends ParticulePrototype {
     constructor(properties) {
         const { size, color, speed, position, flyweight, lifeTime, ...rest } = properties;
-
+        super();
         this.size = size;
         this.color = color;
         this.speed = speed;
