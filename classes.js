@@ -18,18 +18,26 @@ class IParticules {
 
 
 class ParticulePrototype extends IParticules {
-    constructor({size = 1, color = '0x0c', speed = {x: 0, y: 0}} = {}) {
+    constructor({size = 1, color = '0x0c', speed = {x: 0, y: 0}, position = {x: 0, y: 0}, lifeTime = 1} = {}) {
         super();
 
         this.size = size;
         this.color = color;
         this.speed = speed;
+        this.position = position;
+        this.lifeTime = lifeTime;
 
         return this;
     }
 
     clone() {
-        return new ParticulePrototype(this.size, this.color, {...this.speed});
+        return new ParticulePrototype({
+            size: this.size,
+            color: this.color,
+            speed: {...this.speed},
+            position: {...this.position},
+            lifeTime: this.lifeTime
+        });
     }
 }
 
@@ -43,18 +51,35 @@ class Particule extends ParticulePrototype {
         this.speed = speed;
         this.position = position;
         this.flyweight = flyweight;
+        this.lifeTime = lifeTime;
     }
 
     render() {
-        const data = {
-            size: this.size,
-            color: this.color,
-            speed: this.speed,
-            position: this.position,
-            flyweight: this.flyweight
-        }
+        return new Promise((resolve) => {
+            const renderInterval = setInterval(() => {
+                if (this.lifeTime <= 0) {
+                    clearInterval(renderInterval);
+                    resolve();
+                    return;
+                }
 
-        console.log(JSON.stringify(data));
+                this.position = {
+                    x: this.position.x + this.speed.x,
+                    y: this.position.y + this.speed.y
+                }
+
+                this.lifeTime--;
+
+                console.log({
+                    size: this.size,
+                    color: this.color,
+                    speed: this.speed,
+                    position: this.position,
+                    flyweight: this.flyweight,
+                    lifeTime: this.lifeTime
+                });
+            }, 1000);
+        })
     }
 }
 
@@ -87,14 +112,14 @@ class ExplosionConfig {
     #pos
     #color
     #count
-    #spread
+    #speed
     #lifeTime
 
-    constructor(pos, color, count, spread, lifeTime) {
+    constructor({pos, color, count, speed, lifeTime}) {
         this.#pos = pos;
         this.#color = color;
         this.#count = count;
-        this.#spread = spread;
+        this.#speed = speed;
         this.#lifeTime = lifeTime;
     }
 
@@ -103,7 +128,7 @@ class ExplosionConfig {
             pos: this.#pos,
             color: this.#color,
             count: this.#count,
-            spread: this.#spread,
+            speed: this.#speed,
             lifeTime: this.#lifeTime
         }
     }
@@ -153,7 +178,7 @@ class ExplosionBuilder {
         pos: { x: 0, y: 0 },
         color: '0x0c',
         count: 1,
-        spread: 4,
+        speed: { x: 0, y: 0 },
         lifeTime: 10,
         decorators: []
     }
@@ -178,14 +203,21 @@ class ExplosionBuilder {
         return this;
     }
 
-    withSpread(spread = 4) {
-        this.#defaults.spread = spread;
+    withSpeed(x = 0, y = 0) {
+        this.#defaults.speed = { x, y };
         return this;
     }
 
     build() {
-        const { pos, color, count, spread, lifeTime } = this.#defaults;
-        return new ExplosionConfig(pos, color, count, spread, lifeTime);
+        const { pos, color, count, speed, lifeTime } = this.#defaults;
+
+        return new ExplosionConfig({
+            pos,
+            color,
+            count,
+            speed,
+            lifeTime
+        });
     }
 }
 
@@ -194,6 +226,10 @@ class Explosion {
         this.particules = particulesList;
 
         return this;
+    }
+
+    start() {
+        Promise.all(this.particules.map((particule) => particule.render()))
     }
 }
 
@@ -212,23 +248,15 @@ class ExplosionFactory {
         const explosionProperties = config.get();
         const particles = [];
         const flyweight = this.flyweightFactory.get(0, 0);
+        const particuleProperties = new ParticulePrototypeFactory().build(config.get().color);
+
+        particuleProperties.flyweight = flyweight;
+        particuleProperties.lifeTime = explosionProperties.lifeTime;
+        particuleProperties.position = explosionProperties.pos;
+        particuleProperties.speed = explosionProperties.speed;
 
         for (let i = 0; i < explosionProperties.count; i++) {
-            const particuleProperties = new ParticulePrototypeFactory().build(config.get().color);
-
-            console.log(particuleProperties);
-
-            particuleProperties.speed = {
-                x: (Math.random() * explosionProperties.spread) * particuleProperties.speed.x,
-                y: (Math.random() * explosionProperties.spread) * particuleProperties.speed.y
-            }
-
-            particuleProperties.flyweight = flyweight;
-            particuleProperties.lifeTime = explosionProperties.lifeTime;
-            particuleProperties.position = explosionProperties.pos;
-
-            const particle = new Particule(particuleProperties);
-            particles.push(particle);
+            particles.push(new Particule(particuleProperties));
         }
 
         return new Explosion(particles);
