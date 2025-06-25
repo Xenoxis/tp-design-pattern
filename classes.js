@@ -1,5 +1,7 @@
 const PARTICULES_FLYWEIGHTS = {
-    textures: new Array(10).fill(new Uint8Array(1024).fill(Math.random() * 256)),
+    textures: Array.from({ length: 10 }, () =>
+                Uint8Array.from({ length: 1024 }, () => Math.floor(Math.random() * 256))
+            ),
     shaders: Array.from({length: 5}, (_, i) => `shader-${i}`)
 }
 
@@ -17,6 +19,8 @@ class IParticules {
 
 class ParticulePrototype extends IParticules {
     constructor({size = 1, color = '0x0c', speed = {x: 0, y: 0}} = {}) {
+        super();
+
         this.size = size;
         this.color = color;
         this.speed = speed;
@@ -67,7 +71,7 @@ class ParticulePrototypeFactory {
         return this;
     }
 
-    build({color}) {
+    build(color) {
         if (!color) return null;
         
         if (!this.item.has(color)) {
@@ -210,7 +214,9 @@ class ExplosionFactory {
         const flyweight = this.flyweightFactory.get(0, 0);
 
         for (let i = 0; i < explosionProperties.count; i++) {
-            const particuleProperties = this.prototype.clone();
+            const particuleProperties = new ParticulePrototypeFactory().build(config.get().color);
+
+            console.log(particuleProperties);
 
             particuleProperties.speed = {
                 x: (Math.random() * explosionProperties.spread) * particuleProperties.speed.x,
