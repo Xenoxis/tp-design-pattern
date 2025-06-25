@@ -114,13 +114,15 @@ class ExplosionConfig {
     #count
     #speed
     #lifeTime
+    #decorators
 
-    constructor({pos, color, count, speed, lifeTime}) {
+    constructor({pos, color, count, speed, lifeTime, decorators}) {
         this.#pos = pos;
         this.#color = color;
         this.#count = count;
         this.#speed = speed;
         this.#lifeTime = lifeTime;
+        this.#decorators = decorators;
     }
 
     get() {
@@ -129,7 +131,8 @@ class ExplosionConfig {
             color: this.#color,
             count: this.#count,
             speed: this.#speed,
-            lifeTime: this.#lifeTime
+            lifeTime: this.#lifeTime,
+            decorators: this.#decorators
         }
     }
 }
@@ -209,14 +212,15 @@ class ExplosionBuilder {
     }
 
     build() {
-        const { pos, color, count, speed, lifeTime } = this.#defaults;
+        const { pos, color, count, speed, lifeTime, decorators } = this.#defaults;
 
         return new ExplosionConfig({
             pos,
             color,
             count,
             speed,
-            lifeTime
+            lifeTime,
+            decorators
         });
     }
 }
@@ -246,7 +250,7 @@ class ExplosionFactory {
     create(config) {
         if (!(config instanceof ExplosionConfig)) throw new Error('Wrong type');
         const explosionProperties = config.get();
-        const particles = [];
+        const particules = [];
         const flyweight = this.flyweightFactory.get(0, 0);
         const particuleProperties = new ParticulePrototypeFactory().build(config.get().color);
 
@@ -256,10 +260,16 @@ class ExplosionFactory {
         particuleProperties.speed = explosionProperties.speed;
 
         for (let i = 0; i < explosionProperties.count; i++) {
-            particles.push(new Particule(particuleProperties));
+            var particule = new Particule(particuleProperties);
+
+            for (const Decorator of explosionProperties.decorators) {
+                particule = new Decorator(particule);
+            }
+
+            particules.push(particule);
         }
 
-        return new Explosion(particles);
+        return new Explosion(particules);
     }
 }
 
@@ -291,9 +301,10 @@ class ProxyExplosionFactory extends ExplosionFactory {
 
 class ParticuleDecorator extends IParticules {
     constructor(particule) {
-       this.particule = particule;
+        super();
+        this.particule = particule;
 
-       return this;
+        return this;
     }
 
     render() {
