@@ -3,7 +3,19 @@ const PARTICULES_FLYWEIGHTS = {
     shaders: Array.from({length: 5}, (_, i) => `shader-${i}`)
 }
 
-class ParticulePrototype {
+class IParticules {
+
+    clone() {
+        throw new Error('Not Implemented');
+    }
+
+    render() {
+        throw new Error('Not Implemented');
+    }
+}
+
+
+class ParticulePrototype extends IParticules {
     constructor({size = 1, color = '0x0c', speed = {x: 0, y: 0}} = {}) {
         this.size = size;
         this.color = color;
@@ -32,7 +44,7 @@ class Particule extends ParticulePrototype {
     render() {
         const data = {
             size: this.size,
-            baseColor: this.baseColor,
+            color: this.color,
             speed: this.speed,
             position: this.position,
             flyweight: this.flyweight
@@ -40,6 +52,31 @@ class Particule extends ParticulePrototype {
 
         console.log(JSON.stringify(data));
     }
+}
+
+class ParticulePrototypeFactory {
+    static #reference
+
+    constructor() {
+        if (ParticulePrototypeFactory.#reference instanceof ParticulePrototypeFactory) return ParticulePrototypeFactory.#reference;
+
+        ParticulePrototypeFactory.#reference = this
+        
+        this.item = new Map();
+
+        return this;
+    }
+
+    build({color}) {
+        if (!color) return null;
+        
+        if (!this.item.has(color)) {
+            this.item.set(color, new ParticulePrototype({color: color}))
+        }
+
+        return this.item.get(color);
+    }
+
 }
 
 class ExplosionConfig {
@@ -72,7 +109,6 @@ class ParticuleFlyweight {
     constructor(texturePos, shaderPos) {
         this.texture = PARTICULES_FLYWEIGHTS.textures[texturePos];
         this.shader = PARTICULES_FLYWEIGHTS.shaders[shaderPos];
-
         return this;
     }
 }
@@ -114,7 +150,8 @@ class ExplosionBuilder {
         color: '0x0c',
         count: 1,
         spread: 4,
-        lifeTime: 10
+        lifeTime: 10,
+        decorators: []
     }
 
     withPosition(x = 0, y = 0) {
@@ -132,8 +169,13 @@ class ExplosionBuilder {
         return this;
     }
 
+    withDecorator(...decorators) {
+        this.#defaults.decorators = decorators;
+        return this;
+    }
+
     withSpread(spread = 4) {
-        this.#defaults.spread = spread
+        this.#defaults.spread = spread;
         return this;
     }
 
@@ -157,7 +199,6 @@ class ExplosionFactory {
     constructor() {
         if (ExplosionFactory.#reference instanceof ExplosionFactory) return ExplosionFactory.#reference;
         ExplosionFactory.#reference = this;
-        this.prototype = new ParticulePrototype();
         this.flyweightFactory = new FlyweightFactory(null, null);
         return this;
     }
@@ -214,35 +255,31 @@ class ProxyExplosionFactory extends ExplosionFactory {
     }   
 }
 
-class ParticuleDecorator {
+class ParticuleDecorator extends IParticules {
     constructor(particule) {
        this.particule = particule;
 
        return this;
     }
 
-    child() {
-        return this.particule;
+    render() {
+        return this.particule.render();
     }
 }
 
 class GlowParticule extends ParticuleDecorator {
-    constructor(particule) {
-        console.log("Making Particules Glow");
+    render() {
+        console.log("Glowing Particule");
 
-        this.particule = particule;
-
-        return this.child();
+        return super.render();
     }
 }
 
 class ShadowParticule extends ParticuleDecorator {
-    constructor(particule) {
-        console.log("Make Shadow around particules");
+    render() {
+        console.log("Particule with shadows");
 
-        this.particule = particule;
-
-        return this.child();
+        return super.render();
     }
 }
 
